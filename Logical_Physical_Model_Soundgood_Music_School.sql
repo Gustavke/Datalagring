@@ -212,3 +212,61 @@ ALTER TABLE sibling ADD CONSTRAINT FK_sibling_0 FOREIGN KEY (student_id) REFEREN
 ALTER TABLE sibling ADD CONSTRAINT FK_sibling_1 FOREIGN KEY (sibling_id) REFERENCES student (id) ON DELETE CASCADE;
 
 
+CREATE OR REPLACE FUNCTION create_rental(
+    vstudent_id INTEGER,
+    vtype_of_instrument VARCHAR,
+    Vbrand VARCHAR,
+    Vstart_date DATE,
+    Vend_date DATE
+)
+RETURNS VOID AS $$
+DECLARE
+    available_instrument INTEGER;
+BEGIN
+    SELECT i.id
+    INTO available_instrument
+    FROM instrument_type AS t
+    JOIN instrument i ON i.instrument_type_id = t.id
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM rental_service r
+        WHERE r.instrument_id = i.id AND r.end_date >= Vstart_date
+    )
+    AND t.type_of_instrument = Vtype_of_instrument AND t.brand = Vbrand
+    LIMIT 1;
+
+    IF available_instrument IS NULL THEN
+        RAISE EXCEPTION 'No available instrument for the specified type and brand';
+    ELSE
+        INSERT INTO rental_service (student_id, instrument_id, start_date, end_date) 
+        VALUES (Vstudent_id, available_instrument, Vstart_date, Vend_date);
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+CREATE OR REPLACE FUNCTION check_active_rentals()
+RETURNS TRIGGER AS $$
+DECLARE
+    active_count INTEGER;
+BEGIN
+SELECT COUNT(*)
+INTO active_count
+FROM rental_service
+WHERE student_id = NEW.student_id AND end_date >= NEW.start_date;
+	
+IF active_count >= 2 THEN
+	RAISE EXCEPTION 'Student already has two active rentals';
+END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+CREATE TRIGGER before_insert_rental
+BEFORE INSERT ON rental_service
+FOR EACH ROW
+EXECUTE FUNCTION check_active_rentals();
