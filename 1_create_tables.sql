@@ -80,7 +80,7 @@ ALTER TABLE known_instrument ADD CONSTRAINT PK_known_instrument PRIMARY KEY (ins
 
 CREATE TABLE lesson (
  id INT GENERATED ALWAYS AS IDENTITY NOT NULL,
- date TIMESTAMP(10) NOT NULL,
+ date TIMESTAMP(6) NOT NULL,
  duration INT NOT NULL,
  skill_level VARCHAR(500) NOT NULL,
  pricing_id INT NOT NULL,
@@ -117,14 +117,14 @@ CREATE TABLE contact_person (
 ALTER TABLE contact_person ADD CONSTRAINT PK_contact_person PRIMARY KEY (student_id);
 
 
-CREATE TABLE ensamble (
+CREATE TABLE ensemble (
  lesson_id INT NOT NULL,
  genre VARCHAR(500) NOT NULL,
  min_students INT NOT NULL,
  max_students INT NOT NULL
 );
 
-ALTER TABLE ensamble ADD CONSTRAINT PK_ensamble PRIMARY KEY (lesson_id);
+ALTER TABLE ensemble ADD CONSTRAINT PK_ensemble PRIMARY KEY (lesson_id);
 
 
 CREATE TABLE group_lesson (
@@ -193,7 +193,7 @@ ALTER TABLE student_lesson ADD CONSTRAINT FK_student_lesson_1 FOREIGN KEY (stude
 ALTER TABLE contact_person ADD CONSTRAINT FK_contact_person_0 FOREIGN KEY (student_id) REFERENCES student (id) ON DELETE CASCADE;
 
 
-ALTER TABLE ensamble ADD CONSTRAINT FK_ensamble_0 FOREIGN KEY (lesson_id) REFERENCES lesson (id);
+ALTER TABLE ensemble ADD CONSTRAINT FK_ensemble_0 FOREIGN KEY (lesson_id) REFERENCES lesson (id);
 
 
 ALTER TABLE group_lesson ADD CONSTRAINT FK_group_lesson_0 FOREIGN KEY (lesson_id) REFERENCES lesson (id) ON DELETE CASCADE;
@@ -210,63 +210,3 @@ ALTER TABLE rental_service ADD CONSTRAINT FK_rental_service_1 FOREIGN KEY (stude
 
 ALTER TABLE sibling ADD CONSTRAINT FK_sibling_0 FOREIGN KEY (student_id) REFERENCES student (id) ON DELETE CASCADE;
 ALTER TABLE sibling ADD CONSTRAINT FK_sibling_1 FOREIGN KEY (sibling_id) REFERENCES student (id) ON DELETE CASCADE;
-
-
-CREATE OR REPLACE FUNCTION create_rental(
-    vstudent_id INTEGER,
-    vtype_of_instrument VARCHAR,
-    Vbrand VARCHAR,
-    Vstart_date DATE,
-    Vend_date DATE
-)
-RETURNS VOID AS $$
-DECLARE
-    available_instrument INTEGER;
-BEGIN
-    SELECT i.id
-    INTO available_instrument
-    FROM instrument_type AS t
-    JOIN instrument i ON i.instrument_type_id = t.id
-    WHERE NOT EXISTS (
-        SELECT 1
-        FROM rental_service r
-        WHERE r.instrument_id = i.id AND r.end_date >= Vstart_date
-    )
-    AND t.type_of_instrument = Vtype_of_instrument AND t.brand = Vbrand
-    LIMIT 1;
-
-    IF available_instrument IS NULL THEN
-        RAISE EXCEPTION 'No available instrument for the specified type and brand';
-    ELSE
-        INSERT INTO rental_service (student_id, instrument_id, start_date, end_date) 
-        VALUES (Vstudent_id, available_instrument, Vstart_date, Vend_date);
-    END IF;
-END;
-$$ LANGUAGE plpgsql;
-
-
-
-CREATE OR REPLACE FUNCTION check_active_rentals()
-RETURNS TRIGGER AS $$
-DECLARE
-    active_count INTEGER;
-BEGIN
-SELECT COUNT(*)
-INTO active_count
-FROM rental_service
-WHERE student_id = NEW.student_id AND end_date >= NEW.start_date;
-	
-IF active_count >= 2 THEN
-	RAISE EXCEPTION 'Student already has two active rentals';
-END IF;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-
-
-CREATE TRIGGER before_insert_rental
-BEFORE INSERT ON rental_service
-FOR EACH ROW
-EXECUTE FUNCTION check_active_rentals();
