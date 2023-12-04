@@ -11,7 +11,7 @@ LEFT JOIN (
 	FROM lesson
 	WHERE date_trunc('month', lesson.date) = date_trunc('month', CURRENT_DATE)
 	) l ON l.instructor_id = i.id
-GROUP BY i.id, p.person_name
+GROUP BY i.id, p.person_name HAVING count(l.instructor_id) > 3
 ORDER BY "Number of lessons" DESC;
 
 --------------------------------------------------------------------
@@ -44,3 +44,20 @@ FROM (
 	) count_of_siblings_per_student
 GROUP BY sibling_count
 ORDER BY sibling_count;
+
+--Ensembles next week
+CREATE VIEW lessons_next_week AS
+SELECT to_char(l.date, 'Day') AS "Day", 
+	e.genre, 
+	CASE
+		WHEN e.max_students - COUNT(sl.lesson_id) > 2 THEN 'many seats'
+		WHEN e.max_students - COUNT(sl.lesson_id) = 0 THEN 'no seats'
+		ELSE '1 or 2 seats'
+	END
+	as "spots left"
+FROM
+lesson l
+JOIN ensemble e ON e.lesson_id = l.id
+JOIN student_lesson sl ON sl.lesson_id = l.id
+WHERE date_trunc('week', l.date) = date_trunc('week', current_date + interval '1 week')
+GROUP BY l.date, l.id, genre, e.max_students;
