@@ -747,3 +747,11 @@ INSERT INTO sibling (student_id, sibling_id) VALUES (163, 161), (163, 162);
 
 INSERT INTO sibling (student_id, sibling_id) VALUES (164, 165);
 INSERT INTO sibling (student_id, sibling_id) VALUES (165, 164);
+
+
+
+SELECT(insert_lesson('2023-12-12'::TIMESTAMP, 'Ensemble', 'Advanced', 'Pop'));
+SELECT(insert_lesson('2023-12-15'::TIMESTAMP, 'Ensemble', 'Advanced', 'Rock'));
+SELECT(insert_lesson('2023-12-22'::TIMESTAMP, 'Ensemble', 'Advanced', 'Pop'));
+SELECT(insert_lesson('2023-12-23'::TIMESTAMP, 'Ensemble', 'Advanced', 'Classical'));
+SELECT(insert_lesson('2023-12-28'::TIMESTAMP, 'Ensemble', 'Advanced', 'Pop'));
