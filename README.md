@@ -17,3 +17,13 @@
 
     File: 4_create_views.sql
     Description: Execute this script to create views in the database.
+
+5. Create Historical Database
+
+    File: 5_create_historical_db.sql
+    Description: Execute this script to create tables for historical data.
+
+4. Insert into historical 
+
+    File: 6_insert_into_historical.sql
+    Description: Contains script for moving data to historical database
